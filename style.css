@@ -1,62 +1,18 @@
-body { font-family: sans-serif; background: #f0f4f8; display: flex; justify-content: center; }
-.container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 400px; margin-top: 50px; }
-input, button { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-button { background: #007bff; color: white; cursor: pointer; border: none; font-weight: bold; }
-#weather-box { background: #e3f2fd; padding: 10px; border-radius: 5px; }
+body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; }
+.container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+#weather-box { padding: 15px; border-radius: 8px; margin-bottom: 20px; transition: background 0.5s; }
+.input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+input, textarea { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; }
+#btn-save { background: #007bff; margin-bottom: 10px; }
+.button-row { display: flex; gap: 5px; }
+#btn-download { background: #28a745; flex: 1; font-size: 0.8em; }
+#btn-print { background: #6c757d; flex: 1; font-size: 0.8em; }
+#btn-clear { background: #dc3545; flex: 1; font-size: 0.8em; }
+.chart-container { margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
 
-/* Layout for the smaller buttons */
-.button-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 5px;
-}
-
-#btn-download { background: #28a745; flex: 2; } /* Green */
-#btn-clear { background: #ff4444; flex: 1; }    /* Red */
-
-.chart-container {
-    margin: 20px 0;
-    padding: 10px;
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 8px;
-}
-
-canvas {
-    width: 100% !important;
-    height: auto !important;
-}
-
-#btn-print { background: #6c757d; color: white; flex: 1; }
-
-/* This tells the printer what NOT to show */
 @media print {
-    /* Hide all buttons and the input section */
-    button, .input-group, hr, h1 {
-        display: none !important;
-    }
-
-    /* Make the container fill the whole paper */
-    .container {
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        border: none;
-    }
-
-    /* Add a title that ONLY shows on the paper */
-    body::before {
-        content: "Personal Respiratory & Weather Report";
-        display: block;
-        font-size: 24px;
-        font-weight: bold;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-
-    /* Ensure the chart stays visible and sized right */
-    .chart-container {
-        page-break-inside: avoid;
-        border: 1px solid #ccc;
-    }
+    button, .input-group, h1 { display: none !important; }
+    .container { width: 100%; box-shadow: none; border: none; }
+    body::before { content: "Personal Respiratory Report"; display: block; font-size: 20px; text-align: center; margin-bottom: 20px; }
 }
