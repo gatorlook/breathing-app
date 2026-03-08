@@ -2,6 +2,109 @@ const LAT = '43.66560';
 const LON = '-116.70381';
 const API_KEY = 'aece25a5be3cb51982ae054f7bb141fa';
 let currentWeatherData = null;
+let myChart = null;
+
+async function fetchWeather() {
+    const weatherBox = document.getElementById('weather-box');
+    try {
+        const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=imperial`);
+        const wData = await wRes.json();
+        
+        const aRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
+        const aData = await aRes.json();
+
+        const aqiNum = aData.list[0].main.aqi;
+        const aqiLevels = ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very Poor"];
+        const dewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
+
+        currentWeatherData = {
+            temp: wData.main.temp,
+            humidity: wData.main.humidity,
+            pressure: wData.main.pressure,
+            dewPoint: dewPoint,
+            aqiNum: aqiNum,
+            aqiText: aqiLevels[aqiNum]
+        };
+
+        let boxColor = "#e1f5fe";
+        if (dewPoint > 65) boxColor = "#fff9c4";
+        if (aqiNum >= 4) boxColor = "#ffebee";
+
+        weatherBox.style.backgroundColor = boxColor;
+        weatherBox.innerHTML = `
+            <strong>${wData.name}</strong>: ${currentWeatherData.temp}°F | ${currentWeatherData.humidity}% Hum<br>
+            Dew Point: ${dewPoint.toFixed(1)}°F | Press: ${wData.main.pressure} hPa<br>
+            <strong>Air Quality: ${currentWeatherData.aqiText}</strong>
+        `;
+    } catch (e) { weatherBox.innerHTML = "Weather Error."; }
+}
+
+function saveLog() {
+    const score = document.getElementById('score').value;
+    const notes = document.getElementById('notes').value;
+    if(!score) return alert("Please enter a score");
+
+    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
+    logs.push({
+        date: new Date().toLocaleDateString(),
+        score: parseInt(score),
+        notes: notes,
+        ...currentWeatherData
+    });
+
+    localStorage.setItem('breathingData', JSON.stringify(logs));
+    document.getElementById('score').value = '';
+    document.getElementById('notes').value = '';
+    showLogs();
+}
+
+function showLogs() {
+    const list = document.getElementById('history-list');
+    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
+    list.innerHTML = logs.slice().reverse().map(log => `
+        <div style="border-bottom:1px solid #eee; padding:10px; font-size:0.9em;">
+            <strong>${log.date}</strong> - Score: ${log.score}/10<br>
+            <small>AQI: ${log.aqiText} | Dew: ${log.dewPoint.toFixed(1)}°F | ${log.notes}</small>
+        </div>
+    `).join('');
+    updateChart();
+}
+
+function updateChart() {
+    const ctx = document.getElementById('myChart').getContext('2d');
+    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
+    const recent = logs.slice(-7);
+
+    if (myChart) myChart.destroy();
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: recent.map(l => l.date),
+            datasets: [
+                { label: 'Score', data: recent.map(l => l.score), borderColor: '#007bff', tension: 0.3 },
+                { label: 'Pollution', data: recent.map(l => l.aqiNum), borderColor: '#ff9800', backgroundColor: '#ff980022', fill: true, tension: 0.3 },
+                { label: 'Hum %', data: recent.map(l => l.humidity), borderColor: '#28a745', borderDash: [5,5], yAxisID: 'y1', tension: 0.3 }
+            ]
+        },
+        options: { scales: { y: { min: 0, max: 10 }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } } }
+    });
+}
+
+function downloadCSV() {
+    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
+    let csv = "Date,Score,Temp,Hum,DewPoint,Press,AQI,Notes\n" + 
+        logs.map(l => `${l.date},${l.score},${l.temp},${l.humidity},${l.dewPoint},${l.pressure},${l.aqiText},"${l.notes}"`).join("\n");
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'breathing_history.csv'; a.click();
+}
+
+function clearAll() { if(confirm("Clear all data?")) { localStorage.clear(); showLogs(); } }
+
+fetchWeather();
+showLogs();
+let currentWeatherData = null;
 let myChart = null; // This holds the chart so we can update it
 
 //const CITY = 'Caldwell,ID,US'; // Change this to your city
