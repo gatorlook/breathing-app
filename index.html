@@ -1,106 +1,44 @@
-const API_KEY = 'YOUR_ACTUAL_KEY_HERE';
-const LAT = 'YOUR_LAT';
-const LON = 'YOUR_LON';
-let currentWeatherData = null;
-let myChart = null;
-
-async function fetchWeather() {
-    const weatherBox = document.getElementById('weather-box');
-    try {
-        const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=imperial`);
-        const wData = await wRes.json();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing & Weather Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Breathing Tracker</h1>
         
-        const aRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
-        const aData = await aRes.json();
-
-        const aqiNum = aData.list[0].main.aqi;
-        const aqiLevels = ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very Poor"];
-        const dewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
-
-        currentWeatherData = {
-            temp: wData.main.temp,
-            humidity: wData.main.humidity,
-            pressure: wData.main.pressure,
-            dewPoint: dewPoint,
-            aqiNum: aqiNum,
-            aqiText: aqiLevels[aqiNum]
-        };
-
-        let boxColor = "#e1f5fe";
-        if (dewPoint > 65) boxColor = "#fff9c4";
-        if (aqiNum >= 4) boxColor = "#ffebee";
-
-        weatherBox.style.backgroundColor = boxColor;
-        weatherBox.innerHTML = `
-            <strong>${wData.name}</strong>: ${currentWeatherData.temp}°F | ${currentWeatherData.humidity}% Hum<br>
-            Dew Point: ${dewPoint.toFixed(1)}°F | Press: ${wData.main.pressure} hPa<br>
-            <strong>Air Quality: ${currentWeatherData.aqiText}</strong>
-        `;
-    } catch (e) { weatherBox.innerHTML = "Weather Error."; }
-}
-
-function saveLog() {
-    const score = document.getElementById('score').value;
-    const notes = document.getElementById('notes').value;
-    if(!score) return alert("Please enter a score");
-
-    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
-    logs.push({
-        date: new Date().toLocaleDateString(),
-        score: parseInt(score),
-        notes: notes,
-        ...currentWeatherData
-    });
-
-    localStorage.setItem('breathingData', JSON.stringify(logs));
-    document.getElementById('score').value = '';
-    document.getElementById('notes').value = '';
-    showLogs();
-}
-
-function showLogs() {
-    const list = document.getElementById('history-list');
-    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
-    list.innerHTML = logs.slice().reverse().map(log => `
-        <div style="border-bottom:1px solid #eee; padding:10px; font-size:0.9em;">
-            <strong>${log.date}</strong> - Score: ${log.score}/10<br>
-            <small>AQI: ${log.aqiText} | Dew: ${log.dewPoint.toFixed(1)}°F | ${log.notes}</small>
+        <div id="weather-box">
+            <p>Fetching local weather data...</p>
         </div>
-    `).join('');
-    updateChart();
-}
 
-function updateChart() {
-    const ctx = document.getElementById('myChart').getContext('2d');
-    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
-    const recent = logs.slice(-7);
+        <div class="input-group">
+            <label for="score">Breathing Score (1-10):</label>
+            <input type="number" id="score" min="1" max="10" placeholder="10 = Great, 1 = Hard">
+            
+            <label for="notes">Daily Notes:</label>
+            <textarea id="notes" placeholder="e.g. Activity at work, pollen, stress..."></textarea>
+            
+            <button onclick="saveLog()" id="btn-save">Save Daily Entry</button>
+            
+            <div class="button-row">
+                <button onclick="downloadCSV()" id="btn-download">CSV for LibreOffice</button>
+                <button onclick="window.print()" id="btn-print">Print PDF Report</button>
+                <button onclick="clearAll()" id="btn-clear">Clear All</button>
+            </div>
+        </div>
 
-    if (myChart) myChart.destroy();
-    myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: recent.map(l => l.date),
-            datasets: [
-                { label: 'Score', data: recent.map(l => l.score), borderColor: '#007bff', tension: 0.3 },
-                { label: 'Pollution', data: recent.map(l => l.aqiNum), borderColor: '#ff9800', backgroundColor: '#ff980022', fill: true, tension: 0.3 },
-                { label: 'Hum %', data: recent.map(l => l.humidity), borderColor: '#28a745', borderDash: [5,5], yAxisID: 'y1', tension: 0.3 }
-            ]
-        },
-        options: { scales: { y: { min: 0, max: 10 }, y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } } }
-    });
-}
+        <div class="chart-container">
+            <h3>7-Day Trends</h3>
+            <canvas id="myChart"></canvas>
+        </div>
 
-function downloadCSV() {
-    let logs = JSON.parse(localStorage.getItem('breathingData')) || [];
-    let csv = "Date,Score,Temp,Hum,DewPoint,Press,AQI,Notes\n" + 
-        logs.map(l => `${l.date},${l.score},${l.temp},${l.humidity},${l.dewPoint},${l.pressure},${l.aqiText},"${l.notes}"`).join("\n");
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'breathing_history.csv'; a.click();
-}
-
-function clearAll() { if(confirm("Clear all data?")) { localStorage.clear(); showLogs(); } }
-
-fetchWeather();
-showLogs();
+        <h3>Recent History</h3>
+        <div id="history-list"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
