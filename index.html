@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing & Weather Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Breathing Tracker</h1>
+        
+        <div id="weather-box">
+            <p>Fetching local weather data...</p>
+        </div>
+
+        <hr>
+
+        <div class="input-group">
+            <label for="score">Breathing Score (1-10):</label>
+            <input type="number" id="score" min="1" max="10" placeholder="10 = Great, 1 = Hard">
+            
+            <label for="notes">Daily Notes:</label>
+            <textarea id="notes" placeholder="e.g. Pollen was high today, stayed indoors."></textarea>
+            
+            <button onclick="saveLog()" id="btn-save">Save Daily Entry</button>
+            
+            <div class="button-row">
+                <button onclick="downloadCSV()" id="btn-download">Download for LibreOffice</button>
+                <button onclick="window.print()" id="btn-print">Print Report (PDF)</button>
+                <button onclick="clearAll()" id="btn-clear">Clear History</button>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="chart-container">
+            <h3>7-Day Trends</h3>
+            <canvas id="myChart"></canvas>
+        </div>
+
+        <hr>
+
+        <h3>Recent History</h3>
+        <div id="history-list"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
