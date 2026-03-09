@@ -7,61 +7,52 @@ let myChart = null;
 
 async function fetchWeather() {
     const weatherBox = document.getElementById('weather-box');
-    if (!weatherBox) return;
     try {
-        const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=imperial`);
-        if (!weatherRes.ok) throw new Error('Weather service unavailable');
-        const wData = await weatherRes.json();
+        const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=imperial`);
+        const wData = await wRes.json();
+        
+        const aRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
+        const aData = await aRes.json();
 
-        const aqiRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
-        if (!aqiRes.ok) throw new Error('Air quality service unavailable');
-        const aData = await aqiRes.json();
-
-        const temp = wData.main.temp;
-        const humidity = wData.main.humidity;
-        const pressure = wData.main.pressure;
-        const dewPoint = temp - ((100 - humidity) / 5);
-
-        const aqiNum = (aData && aData.list && aData.list[0] && aData.list[0].main && aData.list[0].main.aqi) ? aData.list[0].main.aqi : 0;
-        const aqiLevels = ['Unknown', 'Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
-        const aqiText = aqiLevels[aqiNum] || 'Unknown';
-
-        let boxColor = '#e1f5fe';
-        let warningText = '';
-        if (dewPoint > 65) {
-            boxColor = '#fff9c4';
-            warningText += "<br><span style='color: #f57f17; font-weight: bold;'>⚠️ Muggy Air Warning (High Dew Point)</span>";
-        }
-        if (aqiNum >= 4) {
-            boxColor = '#ffebee';
-            warningText += "<br><span style='color: #c62828; font-weight: bold;'>⚠️ Poor Air Quality Alert</span>";
-        }
+        const aqiNum = aData.list[0].main.aqi;
+        const aqiLevels = ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very Poor"];
+        
+        // Math: Dew Point calculation
+        const dewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
+        
+        // Math: Convert hPa to inches of mercury (inHg)
+        const pressureInHg = (wData.main.pressure * 0.02953).toFixed(2);
 
         currentWeatherData = {
-            temp,
-            humidity,
-            pressure,
-            dewPoint,
-            aqiText,
-            aqiNum
+            temp: wData.main.temp,
+            humidity: wData.main.humidity,
+            pressure: pressureInHg, // Now stored in inches
+            dewPoint: dewPoint,
+            aqiNum: aqiNum,
+            aqiText: aqiLevels[aqiNum]
         };
+
+        // Visual feedback: Change color if conditions are tough for breathing
+        let boxColor = "#e1f5fe"; // Default Blue
+        if (dewPoint > 65) boxColor = "#fff9c4"; // Humid Yellow
+        if (aqiNum >= 4) boxColor = "#ffebee"; // Pollution Red
 
         weatherBox.style.backgroundColor = boxColor;
         weatherBox.innerHTML = `
-            <div style="padding:5px;">
-                <strong>Location: ${wData.name}</strong><br>
-                Temp: ${temp.toFixed(1)}°F | Humidity: ${humidity}%<br>
-                Dew Point: ${dewPoint.toFixed(1)}°F | Press: ${pressure} hPa<br>
-                <strong>Air Quality: ${aqiText}</strong>${warningText}
-            </div>
+            <strong>${wData.name}</strong>: ${currentWeatherData.temp}°F | ${currentWeatherData.humidity}% Hum<br>
+            Dew Point: ${dewPoint.toFixed(1)}°F | Press: ${pressureInHg} inHg<br>
+            <strong>Air Quality: ${currentWeatherData.aqiText}</strong>
         `;
-    } catch (err) {
-        weatherBox.style.backgroundColor = '#ffebee';
-        weatherBox.innerHTML = `<strong style="color:red;">Error:</strong> ${err.message}`;
-        console.error('Fetch Error:', err);
-        currentWeatherData = null;
+    } catch (e) { 
+        weatherBox.innerHTML = "Weather Error. Check API Key or Connection."; 
     }
 }
+
+// This ensures the functions run only after the page is fully loaded
+window.addEventListener('DOMContentLoaded', () => {
+    fetchWeather();
+    showLogs();
+});
 
 function saveLog() {
     const scoreEl = document.getElementById('score');
