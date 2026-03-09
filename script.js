@@ -13,24 +13,27 @@ async function fetchWeather() {
         const aRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
         const aData = await aRes.json();
 
+        // Safety check: If API fails, stop here
+        if (!wData.main || !aData.list) return;
+
         const aqiNum = aData.list[0].main.aqi;
         const aqiLevels = ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very Poor"];
         
         // Math: Dew Point and Pressure Conversion
-        const dewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
+        const rawDewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
         const pressureInHg = (wData.main.pressure * 0.02953).toFixed(2);
 
         currentWeatherData = {
             temp: wData.main.temp,
             humidity: wData.main.humidity,
-            pressure: pressureInHg, // Saving the converted number
-            dewPoint: dewPoint.toFixed(1),
+            pressure: pressureInHg,
+            dewPoint: rawDewPoint.toFixed(1),
             aqiNum: aqiNum,
             aqiText: aqiLevels[aqiNum]
         };
 
         let boxColor = "#e1f5fe";
-        if (dewPoint > 65) boxColor = "#fff9c4";
+        if (rawDewPoint > 65) boxColor = "#fff9c4";
         if (aqiNum >= 4) boxColor = "#ffebee";
 
         weatherBox.style.backgroundColor = boxColor;
@@ -40,7 +43,8 @@ async function fetchWeather() {
             <strong>Air Quality: ${currentWeatherData.aqiText}</strong>
         `;
     } catch (e) { 
-        weatherBox.innerHTML = "Weather Error. Check API Key."; 
+        console.error(e);
+        weatherBox.innerHTML = "Weather Error. Check Console (F12)."; 
     }
 }
 
