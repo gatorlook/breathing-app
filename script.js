@@ -9,12 +9,25 @@ async function fetchWeather() {
     try {
         const wRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${LAT}&lon=${LON}&appid=${API_KEY}&units=imperial`);
         const wData = await wRes.json();
+        if (!wRes.ok) {
+            console.error('Weather fetch failed', wRes.status, wData);
+            weatherBox.innerHTML = `Weather Error: ${wRes.status} ${wData.message || ''}`;
+            return;
+        }
+
         const aRes = await fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${LAT}&lon=${LON}&appid=${API_KEY}`);
         const aData = await aRes.json();
+        if (!aRes.ok) {
+            console.error('Air pollution fetch failed', aRes.status, aData);
+            weatherBox.innerHTML = `Air Quality Error: ${aRes.status} ${aData.message || ''}`;
+        }
 
-        if (!wData.main) return;
+        if (!wData.main) {
+            weatherBox.innerHTML = "Weather Error: Unexpected response format.";
+            return;
+        }
 
-        const aqiNum = aData.list[0].main.aqi;
+        const aqiNum = (aData && aData.list && aData.list[0] && aData.list[0].main) ? aData.list[0].main.aqi : 0;
         const aqiLevels = ["Unknown", "Good", "Fair", "Moderate", "Poor", "Very Poor"];
         const dewPoint = wData.main.temp - ((100 - wData.main.humidity) / 5);
         const pressureInHg = (wData.main.pressure * 0.02953).toFixed(2);
